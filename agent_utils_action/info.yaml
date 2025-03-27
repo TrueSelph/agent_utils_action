@@ -1,0 +1,18 @@
+package:
+  name: jivas/agent_utils_action
+  author: V75 Inc.
+  architype: AgentUtilsAction
+  version: 0.0.1
+  meta:
+    title: Agent Utils
+    description: Provides controls to provide power user controls for the management of agents.
+    group: core
+    type: action
+  config:
+    singleton: true
+  dependencies:
+    jivas: ^2.0.0
+    pip:
+      ftfy: 6.2.3
+
+

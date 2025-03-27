@@ -1,0 +1,11 @@
+include:jac agent_utils_action;
+include:jac purge_memory;
+include:jac refresh_memory;
+include:jac import_memory;
+include:jac delete_agent;
+include:jac export_memory;
+include:jac memory_healthcheck;
+include:jac get_logging;
+include:jac set_logging;
+include:jac export_agent_utils;
+include:jac import_agent_utils;
