@@ -10,7 +10,7 @@ import:jac from jivas.agent.core.agent { Agent }
 
 walker export_agent_utils :interact_graph_walker: {
     # accepts agent_id and returns dict of exported agent descriptor
-    
+
     has clean_descriptor: bool = True;
     has remove_api_keys: bool = False;
     has export_json: bool = True;
@@ -20,14 +20,14 @@ walker export_agent_utils :interact_graph_walker: {
 
     obj __specs__ {
         # make this walker visible in API
-        static has private: bool = True; 
+        static has private: bool = True;
     }
 
     can on_agent with Agent entry {
 
         daf_descriptor = here.export_descriptor(file_path="", modified_context=self.clean_descriptor);
 
-        # create daf info 
+        # create daf info
         daf_info = {
             "package": {
                 "name": daf_descriptor.get('meta', {}).get('namespace', ''),
@@ -42,7 +42,7 @@ walker export_agent_utils :interact_graph_walker: {
             }
         };
 
-        # clean descriptor 
+        # clean descriptor
         if(self.clean_descriptor or self.remove_api_keys){
             for action in daf_descriptor['actions']{
                 action_name =action['action'].split('/')[1];
@@ -76,10 +76,10 @@ walker export_agent_utils :interact_graph_walker: {
                     }
                 }
 
-                
+
             }
-            
-            
+
+
             # agent ignore keys
             agent_ignore_keys = ["id", "meta", "_context", "descriptor"];
             for variable in agent_ignore_keys{
@@ -88,10 +88,10 @@ walker export_agent_utils :interact_graph_walker: {
                 }
             }
         }
-        
-        # get memory 
+
+        # get memory
         daf_memory = here.get_memory().export_memory(agent_id=self.agent_id, session_id="", json=True, save_to_file=False)['memory'];
-        
+
         # get knowledge
         daf_knowledge = [];
         if(vector_store_action := here.get_actions().get(action_label = "TypesenseVectorStoreAction")){
