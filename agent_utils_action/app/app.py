@@ -1,15 +1,18 @@
 """This module provides the Streamlit application for managing agent utilities."""
 
 import json
+import os
 import zipfile
 from io import BytesIO
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
+import requests
 import streamlit as st
 import yaml
 from jvcli.client.lib.utils import (
     call_action_walker_exec,
     call_import_agent,
+    get_user_info,
     jac_yaml_dumper,
 )
 from jvcli.client.lib.widgets import app_header, app_update_action
@@ -20,6 +23,19 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
     """Render the Streamlit application for managing agent utilities."""
     # Add application header controls
     (model_key, module_root) = app_header(agent_id, action_id, info)
+
+    with st.expander("Health Check", False):
+        if st.button("Check Health", key=f"{model_key}_btn_health_check_agent"):
+            # Call the function to check the health
+            if result := call_agent_healthcheck(agent_id=agent_id):
+                if result.get("status") == 200:
+                    st.success("Agent health okay")
+                else:
+                    st.error("Agent health not okay")
+                    st.code(json.dumps(result, indent=2, sort_keys=False))
+            else:
+                st.error("Agent health not okay")
+                st.code(json.dumps(result, indent=2, sort_keys=False))
 
     with st.expander("Export daf", False):
 
@@ -464,3 +480,41 @@ def classify_data(data: Union[Dict[str, Any], List[Dict[str, Any]]]) -> str:
                 elif "frame" in item:
                     return "memory"
     return "unknown"
+
+
+def call_agent_healthcheck(
+    agent_id: str,
+    headers: Optional[Dict] = None,
+) -> dict:
+    """Call the API to check the health of an agent."""
+
+    ctx = get_user_info()
+    jivas_url = os.environ.get("JIVAS_URL", "http://localhost:8000")
+
+    endpoint = f"{jivas_url}/walker/healthcheck"
+
+    if ctx.get("token"):
+        try:
+            headers = headers if headers else {}
+            headers["Authorization"] = "Bearer " + ctx["token"]
+            headers["Content-Type"] = "application/json"
+            headers["Accept"] = "application/json"
+
+            data = {"agent_id": agent_id, "reporting": True, "trace": {}}
+
+            # Dispatch request
+            response = requests.post(endpoint, headers=headers, json=data)
+
+            if response.status_code in [200, 503]:
+                result = response.json()
+                return result if result else {}
+
+            if response.status_code == 401:
+                st.session_state.EXPIRATION = ""
+                return {}
+
+        except Exception as e:
+            st.session_state.EXPIRATION = ""
+            st.write(e)
+
+    return {}
