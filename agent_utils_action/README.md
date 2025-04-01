@@ -27,8 +27,6 @@ This package, developed by V75 Inc., is focused on equipping power users with ad
 ## Dependencies
 
 - **Jivas:** `^2.0.0`
-- **Pip:**
-  - `ftfy`: `6.2.3`
 
 ---
 
