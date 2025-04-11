@@ -1,21 +1,21 @@
 """This module provides the Streamlit application for managing agent utilities."""
 
 import json
-import os
 import zipfile
 from io import BytesIO
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
-import requests
 import streamlit as st
 import yaml
 from jvcli.client.lib.utils import (
     call_action_walker_exec,
+    call_get_agent,
+    call_healthcheck,
     call_import_agent,
-    get_user_info,
+    call_update_agent,
     jac_yaml_dumper,
 )
-from jvcli.client.lib.widgets import app_header, app_update_action
+from jvcli.client.lib.widgets import app_header
 from streamlit_router import StreamlitRouter
 
 
@@ -24,10 +24,117 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
     # Add application header controls
     (model_key, module_root) = app_header(agent_id, action_id, info)
 
+    # initialise the agent object by fetching the agent based on agent_id
+    agent_details = call_get_agent(agent_id)
+
+    with st.expander("Agent Configuration", False):
+        # Editable fields for agent configuration
+
+        name = st.text_input(
+            "Name",
+            value=f"{agent_details.get('name', '')}",
+            key=f"{model_key}_name",
+            help="The name of the agent.",
+        )
+        description = st.text_area(
+            "Description",
+            value=f"{agent_details.get('description', '')}",
+            key=f"{model_key}_description",
+            help="A brief description of the agent.",
+        )
+        jpr_api_key = st.text_input(
+            "JPR API Key",
+            value=f"{agent_details.get('jpr_api_key', '')}",
+            key=f"{model_key}_jpr_api_key",
+            help="The API key used for JPR integration.",
+        )
+        message_limit = st.number_input(
+            "Message Limit",
+            value=int(agent_details.get("message_limit", 1024)),
+            step=10,
+            key=f"{model_key}_message_limit",
+            help="The maximum number of messages the agent can handle within the Window Time.",
+            format="%d",
+        )
+        flood_block_time = st.number_input(
+            "Flood Block Time (seconds)",
+            value=int(agent_details.get("flood_block_time", 300)),
+            step=1,
+            key=f"{model_key}_flood_block_time",
+            help="The time (in seconds) to block interactions after detecting a flood.",
+            format="%d",
+        )
+        window_time = st.number_input(
+            "Window Time (seconds)",
+            value=int(agent_details.get("window_time", 300)),
+            step=1,
+            key=f"{model_key}_window_time",
+            help="The time window (in seconds) for monitoring message flood.",
+            format="%d",
+        )
+        flood_threshold = st.number_input(
+            "Flood Threshold (messages per window)",
+            value=int(agent_details.get("flood_threshold", 4)),
+            step=1,
+            key=f"{model_key}_flood_threshold",
+            help="The maximum number of messages allowed within the window time.",
+            format="%d",
+        )
+        frame_size = st.number_input(
+            "Frame Size (interactions)",
+            value=int(agent_details.get("frame_size", 10)),
+            step=1,
+            key=f"{model_key}_frame_size",
+            help="The number of interactions to keep in the frame before auto-pruning.",
+            format="%d",
+        )
+        tts_action = st.text_input(
+            "TTS Action",
+            value=f"{agent_details.get('tts_action', 'ElevenlabsTTSAction')}",
+            key=f"{model_key}_tts_action",
+            help="The Text-to-Speech (TTS) action to use for the agent.",
+        )
+        stt_action = st.text_input(
+            "STT Action",
+            value=f"{agent_details.get('stt_action', 'DeepgramSTTAction')}",
+            key=f"{model_key}_stt_action",
+            help="The Speech-to-Text (STT) action to use for the agent.",
+        )
+        vector_store_action = st.text_input(
+            "Vector Store Action",
+            value=f"{agent_details.get('vector_store_action', 'TypesenseVectorStoreAction')}",
+            key=f"{model_key}_vector_store_action",
+            help="The default vector store action to use for managing embeddings for the agent.",
+        )
+
+        if st.button(
+            "Update Configuration", key=f"{model_key}_btn_update_configuration"
+        ):
+            # Prepare the updated agent data
+            agent_data = {
+                "name": name,
+                "description": description,
+                "jpr_api_key": jpr_api_key,
+                "message_limit": message_limit,
+                "flood_block_time": flood_block_time,
+                "window_time": window_time,
+                "flood_threshold": flood_threshold,
+                "frame_size": frame_size,
+                "tts_action": tts_action,
+                "stt_action": stt_action,
+                "vector_store_action": vector_store_action,
+            }
+
+            # Call the function to update the agent configuration
+            if result := call_update_agent(agent_id, agent_data):
+                st.success("Agent updated successfully")
+            else:
+                st.error("Failed to update agent.")
+
     with st.expander("Agent Healthcheck", False):
         if st.button("Run Healthcheck", key=f"{model_key}_btn_health_check_agent"):
             # Call the function to check the health
-            if result := call_agent_healthcheck(agent_id=agent_id):
+            if result := call_healthcheck(agent_id=agent_id):
                 if result.get("status") == 200:
                     st.success("Agent health okay")
                 else:
@@ -454,9 +561,6 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                     "Failed to delete agent. Ensure that there is something to refresh or check functionality"
                 )
 
-    # Add update button to apply changes
-    app_update_action(agent_id, action_id)
-
 
 def classify_data(data: Union[Dict[str, Any], List[Dict[str, Any]]]) -> str:
     """
@@ -480,41 +584,3 @@ def classify_data(data: Union[Dict[str, Any], List[Dict[str, Any]]]) -> str:
                 elif "frame" in item:
                     return "memory"
     return "unknown"
-
-
-def call_agent_healthcheck(
-    agent_id: str,
-    headers: Optional[Dict] = None,
-) -> dict:
-    """Call the API to check the health of an agent."""
-
-    ctx = get_user_info()
-    jivas_url = os.environ.get("JIVAS_URL", "http://localhost:8000")
-
-    endpoint = f"{jivas_url}/walker/healthcheck"
-
-    if ctx.get("token"):
-        try:
-            headers = headers if headers else {}
-            headers["Authorization"] = "Bearer " + ctx["token"]
-            headers["Content-Type"] = "application/json"
-            headers["Accept"] = "application/json"
-
-            data = {"agent_id": agent_id, "reporting": True, "trace": {}}
-
-            # Dispatch request
-            response = requests.post(endpoint, headers=headers, json=data)
-
-            if response.status_code in [200, 503]:
-                result = response.json()
-                return result if result else {}
-
-            if response.status_code == 401:
-                st.session_state.EXPIRATION = ""
-                return {}
-
-        except Exception as e:
-            st.session_state.EXPIRATION = ""
-            st.write(e)
-
-    return {}
