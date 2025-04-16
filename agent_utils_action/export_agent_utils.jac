@@ -94,8 +94,12 @@ walker export_agent_utils :interact_graph_walker: {
 
         # get knowledge
         daf_knowledge = [];
-        if(vector_store_action := here.get_actions().get(action_label = "TypesenseVectorStoreAction")){
-            daf_knowledge = json.loads(vector_store_action.export_knodes(export_json=True, embeddings=self.knode_embeddings, include_id=self.knode_id));
+        try {
+            if(vector_store_action := here.get_actions().get(action_label = "TypesenseVectorStoreAction")){
+                daf_knowledge = json.loads(vector_store_action.export_knodes(export_json=True, embeddings=self.knode_embeddings, include_id=self.knode_id));
+            }
+        } except Exception as e {
+            self.logger.warning(f"Unable to export knowledge");
         }
 
 

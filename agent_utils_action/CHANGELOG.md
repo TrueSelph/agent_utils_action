@@ -6,3 +6,6 @@
 
 ## 0.0.3
 - Added healthcheck utility to action app
+
+## 0.0.4
+- Added AGent Configuration controls to action app
