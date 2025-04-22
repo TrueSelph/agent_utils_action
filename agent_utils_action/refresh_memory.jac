@@ -25,7 +25,7 @@ walker refresh_memory :interact_graph_walker: {
     }
 
     can on_action with Action entry {
-        self.response = here.refresh_memory(self.session_id);
+        self.response = here.get_agent().get_memory().refresh(self.session_id);
     }
 
 }

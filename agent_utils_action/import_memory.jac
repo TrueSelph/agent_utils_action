@@ -10,7 +10,6 @@ import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker
 
 walker import_memory :interact_graph_walker: {
 
-    has session_id:str = "";
     has data:str = "";
     has overwite:bool = True;
     has response:bool = False;
