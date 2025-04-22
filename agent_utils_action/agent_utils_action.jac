@@ -1,6 +1,5 @@
 import:py json;
 import:py yaml;
-import:py schedule;
 import:py logging;
 import:py traceback;
 import:py from logging { Logger }
@@ -20,16 +19,12 @@ node AgentUtilsAction :Action: {
         }
     }
 
-    can refresh_memory(session_id:str) {
-        return self.get_agent().get_memory().refresh(session_id);
-    }
-
     can import_memory(data:str, overwrite:bool) {
-        # accepts a string-based representation
-        memory_data = {};
-        if isinstance(data, str) {
-            importing_error_message = "";
+        # imports a string-based representation of memory in YAML of JSON
 
+        memory_data = {};
+
+        if isinstance(data, str) {
             # Try to parse the content as JSON
             try {
                 memory_data = json.loads(data);
@@ -40,31 +35,11 @@ node AgentUtilsAction :Action: {
                 memory_data = yaml.safe_load(data);
             } except yaml.YAMLError {}
 
-        }else{
+        } else {
             memory_data = data;
         }
 
         return self.get_agent().get_memory().import_memory(memory_data, overwrite);
-    }
-
-    can export_memory(agent_id:str, session_id:str, json:bool, save_to_file:bool=False) {
-        # returns a structured memory dump
-        return self.get_agent().get_memory().export_memory(agent_id, session_id, json, save_to_file);
-
-    }
-
-    can memory_healthcheck(agent_id:str, session_id:str = "", verbose:bool=False) {
-        # returns details about the agent memory
-        return self.get_agent().get_memory().memory_healthcheck(agent_id, session_id, verbose);
-    }
-
-    can set_logging(logging:bool) {
-        self.get_agent().set_logging(logging);
-        return True;
-    }
-
-    can get_logging() {
-        return self.get_agent().is_logging();
     }
 
 }

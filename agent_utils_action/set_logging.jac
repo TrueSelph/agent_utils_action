@@ -25,7 +25,8 @@ walker set_logging :interact_graph_walker: {
     }
 
     can on_action with Action entry {
-        self.response = here.set_logging(self.agent_logging);
+        here.get_agent().set_logging(self.logging);
+        self.response = True;
     }
 
 }

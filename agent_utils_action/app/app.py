@@ -1,7 +1,6 @@
 """This module provides the Streamlit application for managing agent utilities."""
 
 import json
-import zipfile
 from io import BytesIO
 from typing import Any, Dict, List, Union
 
@@ -9,11 +8,11 @@ import streamlit as st
 import yaml
 from jvcli.client.lib.utils import (
     call_action_walker_exec,
+    call_api,
     call_get_agent,
     call_healthcheck,
     call_import_agent,
     call_update_agent,
-    jac_yaml_dumper,
 )
 from jvcli.client.lib.widgets import app_header
 from streamlit_router import StreamlitRouter
@@ -131,6 +130,17 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
             else:
                 st.error("Failed to update agent.")
 
+    with st.expander("Initialize Agents", False):
+        # Initialize all agents
+
+        if st.button("Initialize Agents", key=f"{model_key}_btn_init_agents"):
+
+            response = call_api("walker/init_agents", json_data={})
+            if response is not None and response.status_code == 200:
+                st.success("Agents initialized successfully")
+            else:
+                st.error("Failed to initialize agents.")
+
     with st.expander("Agent Healthcheck", False):
         if st.button("Run Healthcheck", key=f"{model_key}_btn_health_check_agent"):
             # Call the function to check the health
@@ -149,13 +159,10 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
         session_id = st.text_input(
             "Session ID (optional)", value="", key=f"{model_key}_healthcheck_session_id"
         )
-        verbose = st.checkbox(
-            "Verbose", value=False, key=f"{model_key}_healthcheck_verbose"
-        )
 
         if st.button("Run Healthcheck", key=f"{model_key}_btn_healthcheck"):
             # Prepare parameters
-            params = {"session_id": session_id, "verbose": verbose}
+            params = {"session_id": session_id}
 
             # Call the function for healthcheck
             result = call_action_walker_exec(
@@ -171,7 +178,7 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                     st.write(f"**{key}:** {value}")
             else:
                 st.error(
-                    "Failed to run memory healthcheck. Please check your inputs or try again."
+                    "Failed to run memory healthcheck. Please check your inputs and try again."
                 )
 
     with st.expander("Purge Memory", False):
@@ -281,7 +288,7 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
         if st.button("Export", key=f"{model_key}_btn_export_memory"):
             # Prepare parameters
-            params = {"session_id": session_id, "json": export_json}
+            params = {"session_id": session_id}
 
             # Call the function to export memory
             result = call_action_walker_exec(
@@ -360,192 +367,76 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
     with st.expander("Import DAF", False):
         # Initialize lists to store classified data
-        descriptors = {}
-        knowledge = []
-        memory = []
-        knode_embeddings = False
+        daf_name = st.text_input("DAF Name", value="", key=f"{model_key}_daf_name")
 
-        uploaded_files = st.file_uploader(
-            "Upload a file or multiple files",
-            type=["json", "yaml", "yml"],
-            accept_multiple_files=True,
+        daf_version = st.text_input(
+            "DAF Version", value="0.0.1", key=f"{model_key}_daf_version"
         )
 
-        if uploaded_files:
-            for uploaded_file in uploaded_files:
-                try:
-                    # Determine the file type
-                    if uploaded_file.type == "application/json":
-                        data = json.load(uploaded_file)
-                    elif uploaded_file.type in ["text/yaml", "application/x-yaml"]:
-                        # Handle YAML files
-                        data = yaml.safe_load(uploaded_file)
-                    else:
-                        st.error("Unsupported file type or error processing the file!")
-                        continue
+        if st.button("Import", key=f"{model_key}_btn_importing_daf"):
 
-                    # Classify the loaded data
-                    classification = classify_data(data)
-                    if classification == "descriptor":
-                        descriptors = data
-                    elif classification == "knowledge":
-                        knowledge = data
-                    elif classification == "memory":
-                        memory = data
-                    else:
-                        st.warning(
-                            f"{uploaded_file.name} didn't match any known schema."
-                        )
-
-                except Exception as e:
-                    st.error(f"Error processing {uploaded_file.name}: {str(e)}")
-
-            if knowledge:
-                knode_embeddings = st.checkbox(
-                    "Knode Embeddings",
-                    value=False,
-                    key=f"{model_key}_importing_daf_knode_embeddings",
-                )
-
-            if st.button("Import", key=f"{model_key}_btn_importing_daf"):
-
-                params = {
-                    "knode_embeddings": knode_embeddings,
-                    "daf_descriptor": descriptors,
-                    "daf_knowledge": knowledge,
-                    "daf_memory": memory,
-                }
-
-                if result := call_action_walker_exec(
-                    agent_id, module_root, "import_agent_utils", params
-                ):
-                    st.success("Daf imported successfully")
-                else:
-                    st.error("Failed to import DAF.")
+            response = call_api(
+                endpoint="walker/import_agent",
+                json_data={
+                    "daf_name": daf_name,
+                    "daf_version": daf_version,
+                },
+            )
+            if response is not None and response.status_code == 200:
+                st.success("Daf imported successfully")
+            else:
+                st.error("Failed to import DAF.")
 
     with st.expander("Export DAF", False):
 
-        knode_embeddings = st.checkbox(
-            "Knode Embeddings",
-            value=False,
-            key=f"{model_key}_exporting_daf_knode_embeddings",
-        )
-        knode_id = st.checkbox(
-            "Knode ID", value=False, key=f"{model_key}_exporting_daf_knode_id"
-        )
-        export_json = st.checkbox(
-            "Json", value=False, key=f"{model_key}_exporting_daf_json"
-        )
-        clean_descriptor = st.checkbox(
+        clean = st.checkbox(
             "Clean Descriptor",
             value=True,
             key=f"{model_key}_exporting_daf_clean_descriptor",
         )
-        remove_api_keys = st.checkbox(
-            "Remove Api keys",
+        with_memory = st.checkbox(
+            "Memory",
             value=False,
-            key=f"{model_key}_exporting_daf_remove_api_keys",
+            key=f"{model_key}_exporting_daf_with_memory",
+        )
+        with_knowledge = st.checkbox(
+            "Knowledge",
+            value=False,
+            key=f"{model_key}_exporting_daf_with_knowledge",
         )
 
         if st.button("Export", key=f"{model_key}_btn_exporting_daf"):
 
-            params = {
-                "knode_embeddings": knode_embeddings,
-                "export_json": export_json,
-                "knode_id": knode_id,
-                "clean_descriptor": clean_descriptor,
-                "remove_api_keys": remove_api_keys,
-            }
+            response = call_api(
+                endpoint="walker/export_daf",
+                json_data={
+                    "agent_id": agent_id,
+                    "clean": clean,
+                    "with_memory": with_memory,
+                    "with_knowledge": with_knowledge,
+                    "reporting": True,
+                },
+            )
+            if response is not None and response.status_code == 200:
+                st.success("DAF exported successfully")
+                result = response.json()
+                reports = result.get("reports", [])
+                download_url = reports[0] if reports else "#"
 
-            if result := call_action_walker_exec(
-                agent_id, module_root, "export_agent_utils", params
-            ):
-
-                if export_json:
-                    # Convert each section to JSON
-                    descriptor_json = json.dumps(result["descriptor"], indent=2)
-                    memory_json = json.dumps(result["memory"], indent=2)
-                    knowledge_json = json.dumps(result["knowledge"], indent=2)
-                    info_json = json.dumps(result["info"], indent=2)
-
-                    # Create a BytesIO stream for each file
-                    descriptor_file = BytesIO(descriptor_json.encode("utf-8"))
-                    memory_file = BytesIO(memory_json.encode("utf-8"))
-                    knowledge_file = BytesIO(knowledge_json.encode("utf-8"))
-                    info_file = BytesIO(info_json.encode("utf-8"))
-
-                    # Zip the files
-                    zip_buffer = BytesIO()
-                    with zipfile.ZipFile(
-                        zip_buffer, "a", zipfile.ZIP_DEFLATED, False
-                    ) as zip_file:
-                        zip_file.writestr("descriptor.json", descriptor_file.getvalue())
-                        zip_file.writestr("memory.json", memory_file.getvalue())
-                        zip_file.writestr("knowledge.json", knowledge_file.getvalue())
-                        zip_file.writestr("info.json", info_file.getvalue())
-
-                    # Make the ZIP file downloadable
-                    namespace = result["info"]["package"]["name"]
-                    namespace = namespace.replace("/", "_")
-                    namespace = namespace.replace("-", "_")
-                    namespace = namespace.replace(" ", "_")
-
-                    st.download_button(
-                        label="Download ZIP",
-                        data=zip_buffer.getvalue(),
-                        file_name=f"{namespace}_daf.zip",
-                        mime="application/zip",
-                    )
-
-                else:
-                    if isinstance(result, str):
-                        result = yaml.safe_load(result)
-
-                    # Convert each section to YAML
-                    descriptor_yaml = jac_yaml_dumper(
-                        result["descriptor"], sort_keys=False
-                    )
-                    memory_yaml = jac_yaml_dumper(
-                        data=result["memory"], sort_keys=False
-                    )
-                    knowledge_yaml = jac_yaml_dumper(
-                        data=result["knowledge"], sort_keys=False
-                    )
-                    info_yaml = jac_yaml_dumper(data=result["info"], sort_keys=False)
-
-                    # Create a BytesIO stream for each file
-                    descriptor_file = BytesIO(descriptor_yaml.encode("utf-8"))
-                    memory_file = BytesIO(memory_yaml.encode("utf-8"))
-                    knowledge_file = BytesIO(knowledge_yaml.encode("utf-8"))
-                    info_file = BytesIO(info_yaml.encode("utf-8"))
-
-                    # Zip the files
-                    zip_buffer = BytesIO()
-                    with zipfile.ZipFile(
-                        zip_buffer, "a", zipfile.ZIP_DEFLATED, False
-                    ) as zip_file:
-                        zip_file.writestr("descriptor.yaml", descriptor_file.getvalue())
-                        zip_file.writestr("memory.yaml", memory_file.getvalue())
-                        zip_file.writestr("knowledge.yaml", knowledge_file.getvalue())
-                        zip_file.writestr("info.yaml", info_file.getvalue())
-
-                    # Ensure the stream position is at the start
-                    zip_buffer.seek(0)
-
-                    # Make the ZIP file downloadable
-                    namespace = result["info"]["package"]["name"]
-                    namespace = namespace.replace("/", "_")
-                    namespace = namespace.replace("-", "_")
-                    namespace = namespace.replace(" ", "_")
-
-                    st.download_button(
-                        label="Download ZIP",
-                        data=zip_buffer.getvalue(),
-                        file_name=f"{namespace}_daf.zip",
-                        mime="application/zip",
-                    )
+                st.markdown(
+                    f"""
+                    <a href="{download_url}" target="_blank">
+                        <button kind="secondary">
+                            Download DAF
+                        </button>
+                    </a>
+                    <br>
+                    <br>
+                    """,
+                    unsafe_allow_html=True,
+                )
             else:
-                st.error("Unable to export agent")
+                st.error("Failed to export DAF.")
 
     with st.expander("Delete Agent", False):
         if st.button(

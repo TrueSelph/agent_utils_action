@@ -10,10 +10,8 @@ import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker
 
 walker memory_healthcheck :interact_graph_walker: {
 
-    has status:int = 200;
-    has response:dict = {};
     has session_id:str = "";
-    has verbose:bool = False;
+    has response:dict = {};
 
     # set up logger
     static has logger:Logger = logging.getLogger(__name__);
@@ -31,7 +29,7 @@ walker memory_healthcheck :interact_graph_walker: {
 
     can on_action with Action entry {
         # retrieve memory
-        self.response = here.memory_healthcheck(agent_id=self.agent_id, session_id=self.session_id, verbose=self.verbose);
+        self.response = here.get_agent().get_memory().memory_healthcheck(self.session_id);
 
     }
 

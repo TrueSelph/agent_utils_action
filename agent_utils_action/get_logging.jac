@@ -24,7 +24,7 @@ walker get_logging :interact_graph_walker: {
     }
 
     can on_action with Action entry {
-        self.response = here.get_logging();
+        self.response = here.get_agent().is_logging();
     }
 
 }

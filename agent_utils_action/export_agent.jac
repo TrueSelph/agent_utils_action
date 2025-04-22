@@ -8,7 +8,7 @@ import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker
 import:jac from jivas.agent.core.agent { Agent }
 
 
-walker export_agent_utils :interact_graph_walker: {
+walker export_agent :interact_graph_walker: {
     # accepts agent_id and returns dict of exported agent descriptor
 
     has clean_descriptor: bool = True;
@@ -90,16 +90,16 @@ walker export_agent_utils :interact_graph_walker: {
         }
 
         # get memory
-        daf_memory = here.get_memory().export_memory(agent_id=self.agent_id, session_id="", json=True, save_to_file=False)['memory'];
+        daf_memory = (here.get_memory().export_memory())['memory'];
 
         # get knowledge
         daf_knowledge = [];
         try {
-            if(vector_store_action := here.get_actions().get(action_label = "TypesenseVectorStoreAction")){
+            if(vector_store_action := here.get_actions().get(action_label = here.get_vector_store_action())){
                 daf_knowledge = json.loads(vector_store_action.export_knodes(export_json=True, embeddings=self.knode_embeddings, include_id=self.knode_id));
             }
         } except Exception as e {
-            self.logger.warning(f"Unable to export knowledge");
+            self.logger.error(f"Unable to export knowledge");
         }
 
 
