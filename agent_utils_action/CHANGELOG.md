@@ -1,11 +1,18 @@
-## 0.0.1
-- Initialized package using jvcli
+# 0.0.1
+- Initialized package with documentation
 
-## 0.0.2
-- Relax version constraints and bump patch version for agent_utils_action
+# 0.0.2
+- Relaxed version constraints for dependencies in agent_utils_action and incremented the patch version.
 
-## 0.0.3
-- Added healthcheck utility to action app
+# 0.0.3
+- Implemented a healthcheck module within the action app.
+- Integrated periodic status checks for system components.
+- Added logging for health status results.
 
-## 0.0.4
-- Added AGent Configuration controls to action app
+# 0.0.4
+- Adds controls for configuring agent settings within the action app interface.
+- Resolves a bug affecting the export agent feature.
+
+# 0.0.5
+- Updated Agent DAF import and export operations
+- Added initagents control
