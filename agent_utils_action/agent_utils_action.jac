@@ -11,8 +11,16 @@ node AgentUtilsAction :Action: {
     # set up logger
     static has logger:Logger = logging.getLogger(__name__);
 
-    can purge_memory(session_id:str) {
+    can purge_frame_memory(session_id:str) {
         if(result := self.get_agent().get_memory().purge(session_id)) {
+            return True;
+        } else {
+            return False;
+        }
+    }
+
+    can purge_collection_memory(collection_name:str) {
+        if(result := self.get_agent().get_memory().purge_collection_memory(collection_name)) {
             return True;
         } else {
             return False;

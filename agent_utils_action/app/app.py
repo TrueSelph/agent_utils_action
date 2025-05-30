@@ -14,7 +14,7 @@ from jvcli.client.lib.utils import (
     call_import_agent,
     call_update_agent,
 )
-from jvcli.client.lib.widgets import app_header
+from jvcli.client.lib.widgets import app_controls, app_header
 from streamlit_router import StreamlitRouter
 
 
@@ -27,102 +27,23 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
     agent_details = call_get_agent(agent_id)
 
     with st.expander("Agent Configuration", False):
-        # Editable fields for agent configuration
 
-        name = st.text_input(
-            "Name",
-            value=f"{agent_details.get('name', '')}",
-            key=f"{model_key}_name",
-            help="The name of the agent.",
-        )
-        description = st.text_area(
-            "Description",
-            value=f"{agent_details.get('description', '')}",
-            key=f"{model_key}_description",
-            help="A brief description of the agent.",
-        )
-        jpr_api_key = st.text_input(
-            "JPR API Key",
-            value=f"{agent_details.get('jpr_api_key', '')}",
-            key=f"{model_key}_jpr_api_key",
-            help="The API key used for JPR integration.",
-        )
-        message_limit = st.number_input(
-            "Message Limit",
-            value=int(agent_details.get("message_limit", 1024)),
-            step=10,
-            key=f"{model_key}_message_limit",
-            help="The maximum number of messages the agent can handle within the Window Time.",
-            format="%d",
-        )
-        flood_block_time = st.number_input(
-            "Flood Block Time (seconds)",
-            value=int(agent_details.get("flood_block_time", 300)),
-            step=1,
-            key=f"{model_key}_flood_block_time",
-            help="The time (in seconds) to block interactions after detecting a flood.",
-            format="%d",
-        )
-        window_time = st.number_input(
-            "Window Time (seconds)",
-            value=int(agent_details.get("window_time", 300)),
-            step=1,
-            key=f"{model_key}_window_time",
-            help="The time window (in seconds) for monitoring message flood.",
-            format="%d",
-        )
-        flood_threshold = st.number_input(
-            "Flood Threshold (messages per window)",
-            value=int(agent_details.get("flood_threshold", 4)),
-            step=1,
-            key=f"{model_key}_flood_threshold",
-            help="The maximum number of messages allowed within the window time.",
-            format="%d",
-        )
-        frame_size = st.number_input(
-            "Frame Size (interactions)",
-            value=int(agent_details.get("frame_size", 10)),
-            step=1,
-            key=f"{model_key}_frame_size",
-            help="The number of interactions to keep in the frame before auto-pruning.",
-            format="%d",
-        )
-        tts_action = st.text_input(
-            "TTS Action",
-            value=f"{agent_details.get('tts_action', 'ElevenlabsTTSAction')}",
-            key=f"{model_key}_tts_action",
-            help="The Text-to-Speech (TTS) action to use for the agent.",
-        )
-        stt_action = st.text_input(
-            "STT Action",
-            value=f"{agent_details.get('stt_action', 'DeepgramSTTAction')}",
-            key=f"{model_key}_stt_action",
-            help="The Speech-to-Text (STT) action to use for the agent.",
-        )
-        vector_store_action = st.text_input(
-            "Vector Store Action",
-            value=f"{agent_details.get('vector_store_action', 'TypesenseVectorStoreAction')}",
-            key=f"{model_key}_vector_store_action",
-            help="The default vector store action to use for managing embeddings for the agent.",
-        )
+        for item_key in agent_details:
+            st.session_state[model_key][item_key] = agent_details[item_key]
+        hidden = ["id", "published", "descriptor", "meta", "healthcheck_status"]
+
+        # Editable fields for agent configuration
+        app_controls(agent_id, action_id, hidden)
 
         if st.button(
             "Update Configuration", key=f"{model_key}_btn_update_configuration"
         ):
+            updated_data = st.session_state[model_key]
             # Prepare the updated agent data
-            agent_data = {
-                "name": name,
-                "description": description,
-                "jpr_api_key": jpr_api_key,
-                "message_limit": message_limit,
-                "flood_block_time": flood_block_time,
-                "window_time": window_time,
-                "flood_threshold": flood_threshold,
-                "frame_size": frame_size,
-                "tts_action": tts_action,
-                "stt_action": stt_action,
-                "vector_store_action": vector_store_action,
-            }
+            agent_data = {}
+            for item_key in updated_data:
+                if item_key not in hidden:
+                    agent_data[item_key] = updated_data[item_key]
 
             # Call the function to update the agent configuration
             if result := call_update_agent(agent_id, agent_data):
@@ -181,20 +102,42 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                     "Failed to run memory healthcheck. Please check your inputs and try again."
                 )
 
-    with st.expander("Purge Memory", False):
+    with st.expander("Purge Frame Memory", False):
         session_id = st.text_input(
-            "Session ID (optional)", value="", key=f"{model_key}_purge_session_id"
+            "Session ID (optional)", value="", key=f"{model_key}_purge_frame_session_id"
         )
 
-        if st.button("Purge", key=f"{model_key}_btn_purge"):
+        if st.button("Purge Frame", key=f"{model_key}_btn_purge_frame"):
+
             # Call the function to purge
             if result := call_action_walker_exec(
-                agent_id, module_root, "purge_memory", {"session_id": session_id}
+                agent_id, module_root, "purge_frame_memory", {"session_id": session_id}
             ):
-                st.success("Agent memory purged successfully")
+                st.success("Agent frame memory purged successfully")
             else:
                 st.error(
-                    "Failed to purge agent memory. Ensure that there is something to purge or check functionality"
+                    "Failed to purge agent frame memory. Ensure that there is something to purge or check functionality"
+                )
+
+    with st.expander("Purge Collection Memory", False):
+        collection_name = st.text_input(
+            "Collection ID (optional)",
+            value="",
+            key=f"{model_key}_purge_collection_collection_name",
+        )
+
+        if st.button("Purge Collection", key=f"{model_key}_btn_purge_collection"):
+            # Call the function to purge
+            if result := call_action_walker_exec(
+                agent_id,
+                module_root,
+                "purge_collection_memory",
+                {"collection_name": collection_name},
+            ):
+                st.success("Agent collection memory purged successfully")
+            else:
+                st.error(
+                    "Failed to purge agent collection memory. Ensure that there is something to purge or check functionality"
                 )
 
     with st.expander("Logging", False):
