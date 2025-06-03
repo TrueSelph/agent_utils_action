@@ -20,9 +20,13 @@ node AgentUtilsAction :Action: {
     }
 
     can purge_collection_memory(collection_name:str) {
-        if(result := self.get_agent().get_memory().purge_collection_memory(collection_name)) {
-            return True;
-        } else {
+        try {
+            if(result := self.get_agent().get_memory().purge_collection_memory(collection_name)) {
+                return True;
+            }
+            return False;
+        } except Exception as e {
+            self.logger.warning(f"Unable to purge collection: {e}");
             return False;
         }
     }

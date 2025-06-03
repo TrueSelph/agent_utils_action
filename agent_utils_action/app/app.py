@@ -109,36 +109,61 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
         if st.button("Purge Frame", key=f"{model_key}_btn_purge_frame"):
 
-            # Call the function to purge
-            if result := call_action_walker_exec(
-                agent_id, module_root, "purge_frame_memory", {"session_id": session_id}
-            ):
-                st.success("Agent frame memory purged successfully")
-            else:
-                st.error(
-                    "Failed to purge agent frame memory. Ensure that there is something to purge or check functionality"
-                )
+            st.warning(
+                "Are you sure you want to purge the frame? This action cannot be undone.",
+                icon="⚠️",
+            )
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Yes, Purge Frame"):
+                    # Call the function to purge
+                    if result := call_action_walker_exec(
+                        agent_id,
+                        module_root,
+                        "purge_frame_memory",
+                        {"session_id": session_id},
+                    ):
+                        st.success("Agent frame memory purged successfully")
+                    else:
+                        st.error(
+                            "Failed to purge frame memory. Ensure that there is something to purge or check functionality"
+                        )
+            with col2:
+                if st.button("No, Keep Frame"):
+                    st.session_state.confirm_state = {"active": False}
+                    st.rerun()
 
     with st.expander("Purge Collection Memory", False):
         collection_name = st.text_input(
-            "Collection ID (optional)",
+            "Collection Name (optional)",
             value="",
             key=f"{model_key}_purge_collection_collection_name",
         )
 
         if st.button("Purge Collection", key=f"{model_key}_btn_purge_collection"):
-            # Call the function to purge
-            if result := call_action_walker_exec(
-                agent_id,
-                module_root,
-                "purge_collection_memory",
-                {"collection_name": collection_name},
-            ):
-                st.success("Agent collection memory purged successfully")
-            else:
-                st.error(
-                    "Failed to purge agent collection memory. Ensure that there is something to purge or check functionality"
-                )
+            st.warning(
+                "Are you sure you want to purge the collection? This action cannot be undone.",
+                icon="⚠️",
+            )
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Yes, Purge Collection"):
+                    # Call the function to purge
+                    if result := call_action_walker_exec(
+                        agent_id,
+                        module_root,
+                        "purge_collection_memory",
+                        {"collection_name": collection_name},
+                    ):
+                        st.success("Agent collection memory purged successfully")
+                    else:
+                        st.error(
+                            "Failed to purge agent collection memory. Ensure that there is something to purge or check functionality"
+                        )
+            with col2:
+                if st.button("No, Keep Collection"):
+                    st.session_state.confirm_state = {"active": False}
+                    st.rerun()
 
     with st.expander("Logging", False):
         _logging = call_action_walker_exec(agent_id, module_root, "get_logging")
