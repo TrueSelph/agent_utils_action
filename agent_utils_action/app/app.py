@@ -140,17 +140,17 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
         # Step 3: Show result *outside* confirmation
         purge_frame_result = st.session_state.get("purge_frame_result")
-        if purge_frame_result is True:
+        if purge_frame_result in [True, []]:
             st.success("Agent frame memory purged successfully")
             st.session_state.purge_frame_result = None  # Reset after showing
-            time.sleep(3)
+            time.sleep(2)
             st.rerun()
         elif purge_frame_result is False:
             st.error(
                 "Failed to purge frame memory. Ensure that there is something to purge or check functionality"
             )
             st.session_state.purge_frame_result = None  # Reset after showing
-            time.sleep(3)
+            time.sleep(2)
             st.rerun()
 
     with st.expander("Purge Collection Memory", False):
@@ -192,17 +192,17 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
         # Step 3: Show result *outside* confirmation
         purge_collection_result = st.session_state.get("purge_collection_result")
-        if purge_collection_result is True:
+        if purge_collection_result in [True, []]:
             st.success("Agent collection memory purged successfully")
             st.session_state.purge_collection_result = None  # Reset after showing
-            time.sleep(3)
+            time.sleep(2)
             st.rerun()
         elif purge_collection_result is False:
             st.error(
                 "Failed to purge collection memory. Ensure that there is something to purge or check functionality"
             )
             st.session_state.purge_collection_result = None  # Reset after showing
-            time.sleep(3)
+            time.sleep(2)
             st.rerun()
 
     with st.expander("Logging", False):
