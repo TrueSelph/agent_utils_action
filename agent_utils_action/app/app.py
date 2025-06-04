@@ -1,8 +1,8 @@
 """This module provides the Streamlit application for managing agent utilities."""
 
 import json
-from io import BytesIO
 import time
+from io import BytesIO
 from typing import Any, Dict, List, Union
 
 import streamlit as st
@@ -102,7 +102,6 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                 st.error(
                     "Failed to run memory healthcheck. Please check your inputs and try again."
                 )
-                
 
     with st.expander("Purge Frame Memory", False):
         session_id = st.text_input(
@@ -125,7 +124,10 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
             with col1:
                 if st.button("Yes, Purge Frame"):
                     purge_frame_result = call_action_walker_exec(
-                        agent_id, module_root, "purge_frame_memory", {"session_id": session_id}
+                        agent_id,
+                        module_root,
+                        "purge_frame_memory",
+                        {"session_id": session_id},
                     )
                     st.session_state.purge_frame_result = purge_frame_result
                     st.session_state.confirm_purge_frame = False
@@ -137,7 +139,7 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                     st.rerun()
 
         # Step 3: Show result *outside* confirmation
-        purge_frame_result = st.session_state.get("purge_frame_result", None)
+        purge_frame_result = st.session_state.get("purge_frame_result")
         if purge_frame_result is True:
             st.success("Agent frame memory purged successfully")
             st.session_state.purge_frame_result = None  # Reset after showing
@@ -151,10 +153,11 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
             time.sleep(3)
             st.rerun()
 
-
     with st.expander("Purge Collection Memory", False):
         collection_name = st.text_input(
-            "Collection Name (optional)", value="", key=f"{model_key}_purge_collection_collection_name"
+            "Collection Name (optional)",
+            value="",
+            key=f"{model_key}_purge_collection_collection_name",
         )
 
         # Step 1: Trigger confirmation
@@ -173,7 +176,10 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
             with col1:
                 if st.button("Yes, Purge Collection"):
                     purge_collection_result = call_action_walker_exec(
-                        agent_id, module_root, "purge_collection_memory", {"collection_name": collection_name}
+                        agent_id,
+                        module_root,
+                        "purge_collection_memory",
+                        {"collection_name": collection_name},
                     )
                     st.session_state.purge_collection_result = purge_collection_result
                     st.session_state.confirm_purge_collection = False
@@ -185,7 +191,7 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                     st.rerun()
 
         # Step 3: Show result *outside* confirmation
-        purge_collection_result = st.session_state.get("purge_collection_result", None)
+        purge_collection_result = st.session_state.get("purge_collection_result")
         if purge_collection_result is True:
             st.success("Agent collection memory purged successfully")
             st.session_state.purge_collection_result = None  # Reset after showing
@@ -199,7 +205,6 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
             time.sleep(3)
             st.rerun()
 
-    
     with st.expander("Logging", False):
         _logging = call_action_walker_exec(agent_id, module_root, "get_logging")
         logging = st.checkbox(

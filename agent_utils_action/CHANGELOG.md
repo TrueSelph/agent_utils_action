@@ -24,4 +24,3 @@
 
 # 0.0.7
 - Fix purge collection and frame bugs
-- 
