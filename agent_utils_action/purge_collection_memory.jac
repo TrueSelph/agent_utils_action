@@ -8,9 +8,9 @@ import:jac from jivas.agent.action.actions { Actions }
 import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker }
 
 
-walker purge_memory :interact_graph_walker: {
+walker purge_collection_memory :interact_graph_walker: {
 
-    has session_id:str = "";
+    has collection_name:str = "";
     has response:bool = False;
 
     # set up logger
@@ -25,7 +25,7 @@ walker purge_memory :interact_graph_walker: {
     }
 
     can on_action with Action entry {
-        self.response = here.purge_memory(self.session_id);
+        self.response = here.purge_collection_memory(self.collection_name);
     }
 
 }
