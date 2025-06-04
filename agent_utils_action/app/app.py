@@ -2,6 +2,7 @@
 
 import json
 from io import BytesIO
+import time
 from typing import Any, Dict, List, Union
 
 import streamlit as st
@@ -101,70 +102,104 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                 st.error(
                     "Failed to run memory healthcheck. Please check your inputs and try again."
                 )
+                
 
     with st.expander("Purge Frame Memory", False):
         session_id = st.text_input(
             "Session ID (optional)", value="", key=f"{model_key}_purge_frame_session_id"
         )
 
+        # Step 1: Trigger confirmation
         if st.button("Purge Frame", key=f"{model_key}_btn_purge_frame"):
+            st.session_state.confirm_purge_frame = True
+            st.session_state.purge_frame_result = None  # Clear any previous result
 
+        # Step 2: Handle confirmation prompt
+        if st.session_state.get("confirm_purge_frame", False):
             st.warning(
                 "Are you sure you want to purge the frame? This action cannot be undone.",
                 icon="⚠️",
             )
             col1, col2 = st.columns(2)
+
             with col1:
                 if st.button("Yes, Purge Frame"):
-                    # Call the function to purge
-                    if result := call_action_walker_exec(
-                        agent_id,
-                        module_root,
-                        "purge_frame_memory",
-                        {"session_id": session_id},
-                    ):
-                        st.success("Agent frame memory purged successfully")
-                    else:
-                        st.error(
-                            "Failed to purge frame memory. Ensure that there is something to purge or check functionality"
-                        )
+                    purge_frame_result = call_action_walker_exec(
+                        agent_id, module_root, "purge_frame_memory", {"session_id": session_id}
+                    )
+                    st.session_state.purge_frame_result = purge_frame_result
+                    st.session_state.confirm_purge_frame = False
+
             with col2:
                 if st.button("No, Keep Frame"):
-                    st.session_state.confirm_state = {"active": False}
+                    st.session_state.confirm_purge_frame = False
+                    st.session_state.purge_frame_result = None
                     st.rerun()
+
+        # Step 3: Show result *outside* confirmation
+        purge_frame_result = st.session_state.get("purge_frame_result", None)
+        if purge_frame_result is True:
+            st.success("Agent frame memory purged successfully")
+            st.session_state.purge_frame_result = None  # Reset after showing
+            time.sleep(3)
+            st.rerun()
+        elif purge_frame_result is False:
+            st.error(
+                "Failed to purge frame memory. Ensure that there is something to purge or check functionality"
+            )
+            st.session_state.purge_frame_result = None  # Reset after showing
+            time.sleep(3)
+            st.rerun()
+
 
     with st.expander("Purge Collection Memory", False):
         collection_name = st.text_input(
-            "Collection Name (optional)",
-            value="",
-            key=f"{model_key}_purge_collection_collection_name",
+            "Collection Name (optional)", value="", key=f"{model_key}_purge_collection_collection_name"
         )
 
+        # Step 1: Trigger confirmation
         if st.button("Purge Collection", key=f"{model_key}_btn_purge_collection"):
+            st.session_state.confirm_purge_collection = True
+            st.session_state.purge_collection_result = None  # Clear any previous result
+
+        # Step 2: Handle confirmation prompt
+        if st.session_state.get("confirm_purge_collection", False):
             st.warning(
                 "Are you sure you want to purge the collection? This action cannot be undone.",
                 icon="⚠️",
             )
             col1, col2 = st.columns(2)
+
             with col1:
                 if st.button("Yes, Purge Collection"):
-                    # Call the function to purge
-                    if result := call_action_walker_exec(
-                        agent_id,
-                        module_root,
-                        "purge_collection_memory",
-                        {"collection_name": collection_name},
-                    ):
-                        st.success("Agent collection memory purged successfully")
-                    else:
-                        st.error(
-                            "Failed to purge agent collection memory. Ensure that there is something to purge or check functionality"
-                        )
+                    purge_collection_result = call_action_walker_exec(
+                        agent_id, module_root, "purge_collection_memory", {"collection_name": collection_name}
+                    )
+                    st.session_state.purge_collection_result = purge_collection_result
+                    st.session_state.confirm_purge_collection = False
+
             with col2:
                 if st.button("No, Keep Collection"):
-                    st.session_state.confirm_state = {"active": False}
+                    st.session_state.confirm_purge_collection = False
+                    st.session_state.purge_collection_result = None
                     st.rerun()
 
+        # Step 3: Show result *outside* confirmation
+        purge_collection_result = st.session_state.get("purge_collection_result", None)
+        if purge_collection_result is True:
+            st.success("Agent collection memory purged successfully")
+            st.session_state.purge_collection_result = None  # Reset after showing
+            time.sleep(3)
+            st.rerun()
+        elif purge_collection_result is False:
+            st.error(
+                "Failed to purge collection memory. Ensure that there is something to purge or check functionality"
+            )
+            st.session_state.purge_collection_result = None  # Reset after showing
+            time.sleep(3)
+            st.rerun()
+
+    
     with st.expander("Logging", False):
         _logging = call_action_walker_exec(agent_id, module_root, "get_logging")
         logging = st.checkbox(

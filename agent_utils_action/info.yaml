@@ -2,7 +2,7 @@ package:
   name: jivas/agent_utils_action
   author: V75 Inc.
   architype: AgentUtilsAction
-  version: 0.0.6
+  version: 0.0.7
   meta:
     title: Agent Utils
     description: Provides controls to provide power user controls for the management of agents.

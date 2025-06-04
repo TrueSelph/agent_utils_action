@@ -21,3 +21,7 @@
 - Added purge collection
 - Added purge frame
 - Allow utils to update agent config
+
+# 0.0.7
+- Fix purge collection and frame bugs
+- 
