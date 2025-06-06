@@ -1,6 +1,7 @@
 include:jac agent_utils_action;
 include:jac purge_frame_memory;
 include:jac purge_collection_memory;
+include:jac purge_action;
 include:jac refresh_memory;
 include:jac import_memory;
 include:jac delete_agent;

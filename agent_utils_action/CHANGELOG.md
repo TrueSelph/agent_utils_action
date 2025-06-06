@@ -27,3 +27,6 @@
 
 # 0.0.8
 - Fixed the bug where the empty list prevents the message from being displayed
+
+# 0.0.9
+- Added purge action

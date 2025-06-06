@@ -31,6 +31,20 @@ node AgentUtilsAction :Action: {
         }
     }
 
+    can purge_action(action_name:str = "") {
+        if(action_name){
+            agent_data = self.get_agent().get_actions().get_by_label(action_label = action_name, only_enabled = False);
+            if (agent_data and agent_data is not None) {
+                self.get_agent().get_actions().deregister_action(action_type = "", action_label = action_name);
+                return True;
+            }
+            return False;
+        }else {
+            self.get_agent().get_actions().deregister_actions();
+            return True;
+        }
+    }
+
     can import_memory(data:str, overwrite:bool) {
         # imports a string-based representation of memory in YAML of JSON
 
