@@ -140,12 +140,12 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
         # Step 3: Show result *outside* confirmation
         purge_frame_result = st.session_state.get("purge_frame_result")
-        if purge_frame_result in [True, []]:
+        if purge_frame_result in [True]:
             st.success("Agent frame memory purged successfully")
             st.session_state.purge_frame_result = None  # Reset after showing
             time.sleep(2)
             st.rerun()
-        elif purge_frame_result is False:
+        elif purge_frame_result in [False, []]:
             st.error(
                 "Failed to purge frame memory. Ensure that there is something to purge or check functionality"
             )
@@ -157,7 +157,7 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
         collection_name = st.text_input(
             "Collection Name (optional)",
             value="",
-            key=f"{model_key}_purge_collection_collection_name",
+            key=f"{model_key}_purge_collection_name",
         )
 
         # Step 1: Trigger confirmation
@@ -192,16 +192,69 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
         # Step 3: Show result *outside* confirmation
         purge_collection_result = st.session_state.get("purge_collection_result")
-        if purge_collection_result in [True, []]:
+        if purge_collection_result in [True]:
             st.success("Agent collection memory purged successfully")
             st.session_state.purge_collection_result = None  # Reset after showing
             time.sleep(2)
             st.rerun()
-        elif purge_collection_result is False:
+        elif purge_collection_result in [False, []]:
             st.error(
                 "Failed to purge collection memory. Ensure that there is something to purge or check functionality"
             )
             st.session_state.purge_collection_result = None  # Reset after showing
+            time.sleep(2)
+            st.rerun()
+
+    with st.expander("Purge Action", False):
+        action_name = st.text_input(
+            "Action Name (optional)",
+            value="",
+            key=f"{model_key}_purge_action_name",
+            placeholder="Enter class name in PascalCase (e.g. AccessControlAction)",
+        )
+
+        # Step 1: Trigger confirmation
+        if st.button("Purge Action", key=f"{model_key}_btn_purge_action"):
+            st.session_state.confirm_purge_action = True
+            st.session_state.purge_action_result = None  # Clear any previous result
+
+        # Step 2: Handle confirmation prompt
+        if st.session_state.get("confirm_purge_action", False):
+            st.warning(
+                "Are you sure you want to purge the action? This action cannot be undone.",
+                icon="⚠️",
+            )
+            col1, col2 = st.columns(2)
+
+            with col1:
+                if st.button("Yes, Purge Action"):
+                    purge_action_result = call_action_walker_exec(
+                        agent_id,
+                        module_root,
+                        "purge_action",
+                        {"action_name": action_name},
+                    )
+                    st.session_state.purge_action_result = purge_action_result
+                    st.session_state.confirm_purge_action = False
+
+            with col2:
+                if st.button("No, Keep Action"):
+                    st.session_state.confirm_purge_action = False
+                    st.session_state.purge_action_result = None
+                    st.rerun()
+
+        # Step 3: Show result *outside* confirmation
+        purge_action_result = st.session_state.get("purge_action_result")
+        if purge_action_result in [True]:
+            st.success("Agent purged successfully")
+            st.session_state.purge_action_result = None  # Reset after showing
+            time.sleep(2)
+            st.rerun()
+        elif purge_action_result in [False, []]:
+            st.error(
+                "Failed to purge. Ensure that there is something to purge or check functionality"
+            )
+            st.session_state.purge_action_result = None  # Reset after showing
             time.sleep(2)
             st.rerun()
 
