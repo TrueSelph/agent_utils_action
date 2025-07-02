@@ -15,7 +15,7 @@
 
 # 0.0.5
 - Updated Agent DAF import and export operations
-- Added initagents control
+- Added init agents control
 
 # 0.0.6
 - Added purge collection
