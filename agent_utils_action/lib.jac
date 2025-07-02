@@ -1,11 +1,13 @@
-include:jac agent_utils_action;
-include:jac purge_frame_memory;
-include:jac purge_collection_memory;
-include:jac refresh_memory;
-include:jac import_memory;
-include:jac delete_agent;
-include:jac export_memory;
-include:jac memory_healthcheck;
-include:jac get_logging;
-include:jac set_logging;
-include:jac export_agent;
+import from actions.jivas.agent_utils_action {
+    agent_utils_action,
+    purge_frame_memory,
+    purge_collection_memory,
+    refresh_memory,
+    import_memory,
+    delete_agent,
+    export_memory,
+    memory_healthcheck,
+    get_logging,
+    set_logging,
+    export_agent
+}

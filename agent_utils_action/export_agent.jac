@@ -1,14 +1,13 @@
-import:py re;
-import:py ast;
-import:py json;
-import:py yaml;
-import:py from jivas.agent.modules.agentlib.utils { Utils }
-import:py from jivas.agent.modules.agentlib.utils { LongStringDumper }
-import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker }
-import:jac from jivas.agent.core.agent { Agent }
+import re;
+import ast;
+import json;
+import yaml;
+import from jivas.agent.modules.agentlib.utils { Utils, LongStringDumper }
+import from jivas.agent.action.interact_graph_walker { interact_graph_walker }
+import from jivas.agent.core.agent { Agent }
 
 
-walker export_agent :interact_graph_walker: {
+walker export_agent(interact_graph_walker) {
     # accepts agent_id and returns dict of exported agent descriptor
 
     has clean_descriptor: bool = True;

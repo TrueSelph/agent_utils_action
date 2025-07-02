@@ -1,12 +1,12 @@
-import:py logging;
-import:py from logging { Logger }
-import:jac from jivas.agent.core.agent { Agent }
-import:jac from jivas.agent.action.action { Action }
-import:jac from jivas.agent.action.actions { Actions }
-import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker }
+import logging;
+import from logging { Logger }
+import from jivas.agent.core.agent { Agent }
+import from jivas.agent.action.action { Action }
+import from jivas.agent.action.actions { Actions }
+import from jivas.agent.action.interact_graph_walker { interact_graph_walker }
 
 
-walker purge_collection_memory :interact_graph_walker: {
+walker purge_collection_memory(interact_graph_walker) {
 
     has collection_name:str = "";
     has response:bool = False;

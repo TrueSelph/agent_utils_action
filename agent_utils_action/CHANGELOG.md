@@ -27,3 +27,6 @@
 
 # 0.0.8
 - Fixed the bug where the empty list prevents the message from being displayed
+
+# 0.1.0
+- Updated to support Jivas 2.1.0

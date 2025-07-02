@@ -1,17 +1,17 @@
-import:py json;
-import:py yaml;
-import:py logging;
-import:py traceback;
-import:py from logging { Logger }
-import:jac from jivas.agent.action.action { Action }
+import json;
+import yaml;
+import logging;
+import traceback;
+import from logging { Logger }
+import from jivas.agent.action.action { Action }
 
-node AgentUtilsAction :Action: {
+node AgentUtilsAction(Action) {
     # Provides controls to provide power user controls for the management of agents.
 
     # set up logger
     static has logger:Logger = logging.getLogger(__name__);
 
-    can purge_frame_memory(session_id:str) {
+    def purge_frame_memory(session_id:str) {
         if(result := self.get_agent().get_memory().purge(session_id)) {
             return True;
         } else {
@@ -19,7 +19,7 @@ node AgentUtilsAction :Action: {
         }
     }
 
-    can purge_collection_memory(collection_name:str) {
+    def purge_collection_memory(collection_name:str) {
         try {
             if(result := self.get_agent().get_memory().purge_collection_memory(collection_name)) {
                 return True;
@@ -31,7 +31,7 @@ node AgentUtilsAction :Action: {
         }
     }
 
-    can import_memory(data:str, overwrite:bool) {
+    def import_memory(data:str, overwrite:bool) {
         # imports a string-based representation of memory in YAML of JSON
 
         memory_data = {};

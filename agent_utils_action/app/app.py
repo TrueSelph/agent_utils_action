@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Union
 
 import streamlit as st
 import yaml
-from jvcli.client.lib.utils import (
+from jvclient.lib.utils import (
     call_action_walker_exec,
     call_api,
     call_get_agent,
@@ -15,7 +15,7 @@ from jvcli.client.lib.utils import (
     call_import_agent,
     call_update_agent,
 )
-from jvcli.client.lib.widgets import app_controls, app_header
+from jvclient.lib.widgets import app_controls, app_header
 from streamlit_router import StreamlitRouter
 
 
@@ -246,7 +246,9 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
             height=170,
             key=f"{model_key}_memory_data",
         )
-        overwite = st.toggle("Overwite", value=True, key=f"{model_key}_overide_memory")
+        overwrite = st.toggle(
+            "Overwrite", value=True, key=f"{model_key}_overwrite_memory"
+        )
 
         if st.button("Import", key=f"{model_key}_btn_import_memory"):
             # Call the function to import
@@ -254,7 +256,7 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                 agent_id,
                 module_root,
                 "import_memory",
-                {"data": memory_data, "overwite": overwite},
+                {"data": memory_data, "overwrite": overwrite},
             ):
                 st.success("Agent memory imported successfully")
             else:
@@ -362,7 +364,7 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                     "Failed to import agent. Ensure that the  descriptor is in valid YAML format"
                 )
 
-        uploaded_file = st.file_uploader("Upload Desciptor file")
+        uploaded_file = st.file_uploader("Upload Descriptor file")
 
         if uploaded_file is not None:
             st.write(uploaded_file)

@@ -1,17 +1,15 @@
-import:py logging;
-import:py traceback;
-import:py from logging { Logger }
-import:py base64;
-import:jac from jivas.agent.core.agent { Agent }
-import:jac from jivas.agent.action.action { Action }
-import:jac from jivas.agent.action.actions { Actions }
-import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker }
+import logging;
+import from logging { Logger }
+import from jivas.agent.core.agent { Agent }
+import from jivas.agent.action.action { Action }
+import from jivas.agent.action.actions { Actions }
+import from jivas.agent.action.interact_graph_walker { interact_graph_walker }
 
 
-walker import_memory :interact_graph_walker: {
+walker import_memory(interact_graph_walker) {
 
     has data:str = "";
-    has overwite:bool = True;
+    has overwrite:bool = True;
     has response:bool = False;
 
     # set up logger
@@ -26,7 +24,7 @@ walker import_memory :interact_graph_walker: {
     }
 
     can on_action with Action entry {
-        self.response = here.import_memory(self.data, self.overwite);
+        self.response = here.import_memory(self.data, self.overwrite);
     }
 
 }
