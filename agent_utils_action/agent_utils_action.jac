@@ -12,7 +12,7 @@ node AgentUtilsAction(Action) {
     static has logger:Logger = logging.getLogger(__name__);
 
     def purge_frame_memory(session_id:str) {
-        if(result := self.get_agent().get_memory().purge(session_id)) {
+        if(result := self.get_agent().get_memory().purge_frame_memory(session_id)) {
             return True;
         } else {
             return False;

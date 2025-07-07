@@ -1,10 +1,10 @@
 import logging;
 import from logging { Logger }
 import from jivas.agent.core.agents { Agents }
-import from jivas.agent.action.interact_graph_walker { interact_graph_walker }
+import from jivas.agent.action.agent_graph_walker { agent_graph_walker }
 
 
-walker delete_agent(interact_graph_walker) {
+walker delete_agent(agent_graph_walker) {
 
     has agent_id:str = "";
     has response:bool = False;
