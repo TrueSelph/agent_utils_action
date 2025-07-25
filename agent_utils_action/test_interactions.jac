@@ -47,6 +47,6 @@ walker test_interactions(agent_graph_walker) {
         self.response.reverse();
         self.response = self.response[:self.max_interactions];
     }
-    
+
 }
 
