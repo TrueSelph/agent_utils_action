@@ -123,14 +123,13 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
             with col1:
                 if st.button("Yes, Purge Frame"):
-                    purge_frame_result = call_action_walker_exec(
-                        agent_id,
-                        module_root,
-                        "purge_frame_memory",
-                        {"session_id": session_id},
+                    purge_frame_result = call_api(
+                        endpoint="walker/agent_utils_action/purge_frame_memory",
+                        json_data={"agent_id": agent_id, "session_id": session_id},
                     )
-                    st.session_state.purge_frame_result = purge_frame_result
-                    st.session_state.confirm_purge_frame = False
+                    if purge_frame_result and purge_frame_result.status_code == 200:
+                        st.session_state.purge_frame_result = True
+                        st.session_state.confirm_purge_frame = False
 
             with col2:
                 if st.button("No, Keep Frame"):
@@ -460,6 +459,149 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
             else:
                 st.error(
                     "Failed to delete agent. Ensure that there is something to refresh or check functionality"
+                )
+
+    with st.expander("Test Interaction", expanded=False):
+        selected_interaction: Dict[str, Any] = {}
+        interactions: List[Dict[str, Any]] = []
+
+        # Configuration section
+        col1, col2 = st.columns(2)
+        with col1:
+            session_id = st.text_input(
+                "Session ID (optional)",
+                value="",
+                key=f"{model_key}_test_interaction_session_id",
+                help="Leave empty to start a new session",
+            )
+        with col2:
+            max_interactions = st.number_input(
+                "Max Interactions",
+                min_value=1,
+                value=3,
+                key=f"{model_key}_test_interaction_max_interactions",
+                help="Maximum number of interactions to retrieve",
+            )
+
+        # Action button
+        if st.button(
+            "Get Interactions",
+            key=f"{model_key}_btn_test_interaction",
+            help="Fetch interaction history for this session",
+        ):
+            with st.spinner("Fetching interactions..."):
+                try:
+                    interactions = call_action_walker_exec(
+                        agent_id,
+                        module_root,
+                        "test_interactions",
+                        {
+                            "session_id": session_id,
+                            "max_interactions": max_interactions,
+                        },
+                    )
+                    st.session_state["last_interactions"] = interactions
+                except Exception as e:
+                    st.error(f"Failed to fetch interactions: {str(e)}")
+                    interactions = []
+
+        # Display results
+        interactions = st.session_state.get("last_interactions", [])
+
+        if not interactions:
+            st.info(
+                "No interactions found. Configure and run a test interaction first."
+            )
+        else:
+            # Create a dropdown with all available utterances
+            selected_interaction = st.selectbox(
+                "Select an utterance",
+                options=interactions,
+                format_func=lambda x: (
+                    x["utterance"][:50] + "..."
+                    if len(x["utterance"]) > 50
+                    else x["utterance"]
+                ),
+                help="Select an interaction to inspect",
+                key=f"{model_key}_interaction_select",
+            )
+
+            if selected_interaction:
+                # Create a dropdown for ModelActionResults within the selected interaction
+                selected_result_index = st.selectbox(
+                    "Select a Result",
+                    options=range(
+                        len(selected_interaction.get("ModelActionResult", []))
+                    ),
+                    format_func=lambda i: f"{selected_interaction['ModelActionResult'][i].get('result', 'unknown')}",
+                    help="Select a specific result to test",
+                    key=f"{model_key}_result_select",
+                )
+
+                # Display the selected ModelActionResult
+                if selected_interaction["ModelActionResult"]:
+                    selected_result = selected_interaction["ModelActionResult"][
+                        selected_result_index
+                    ]
+
+        if selected_interaction and selected_interaction["ModelActionResult"]:
+            st.write("---")
+            selected_result = selected_interaction["ModelActionResult"][
+                selected_result_index
+            ]
+
+            temperature = st.slider(
+                "Temperature",
+                min_value=0.0,
+                max_value=1.0,
+                value=selected_result.get("temperature", 0.2),
+                step=0.1,
+                key=f"{model_key}_temperature_slider",
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                model_name = st.text_input(
+                    "Model Name",
+                    value=selected_result.get("model_name", ""),
+                    key=f"{model_key}_model_name_input",
+                )
+
+            with col2:
+                max_tokens = st.number_input(
+                    "Max Tokens",
+                    min_value=0,
+                    value=selected_result.get("max_tokens", 0),
+                    step=1,
+                    key=f"{model_key}_max_tokens_input",
+                )
+
+            # Use a regular text_area but with dynamic height calculation
+            prompt = selected_result.get("prompt", "")
+            line_count = prompt.count("\n") + 2
+            height = min(max(100, line_count * 20), 600)  # Between 100 and 500 px
+
+            edited_prompt = st.text_area(
+                "Prompt", value=prompt, height=height, key=f"{model_key}_prompt_editor"
+            )
+
+            if st.button("Test Prompt", key=f"{model_key}_save_prompt"):
+                llm_result = call_action_walker_exec(
+                    agent_id,
+                    module_root,
+                    "test_llm_call",
+                    {
+                        "llm_prompt_message": edited_prompt,
+                        "model_name": model_name,
+                        "model_temperature": temperature,
+                        "model_max_tokens": max_tokens,
+                    },
+                )
+
+                st.warning(f"New Result: {llm_result.get("result", "No result found")}")
+                st.info(
+                    f"Agent Result: {selected_result.get('result', 'No result found')}"
                 )
 
 
