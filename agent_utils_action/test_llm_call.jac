@@ -33,7 +33,17 @@ walker test_llm_call(agent_graph_walker) {
     }
 
     can on_action with Action entry {
-        self.response = here.test_llm_call(llm_prompt_message=self.llm_prompt_message, model_name=self.model_name, model_temperature=self.model_temperature, model_max_tokens=self.model_max_tokens);
+        response = here.test_llm_call(llm_prompt_message=self.llm_prompt_message, model_name=self.model_name, model_temperature=self.model_temperature, model_max_tokens=self.model_max_tokens);
+
+        self.response = {
+            "prompt": response.prompt,
+            "functions": response.functions,
+            "result": response.result,
+            "tokens": response.tokens,
+            "temperature": response.temperature,
+            "model_name": response.model_name,
+            "max_tokens": response.max_tokens
+        };
 
         if self.reporting {
             report self.response;

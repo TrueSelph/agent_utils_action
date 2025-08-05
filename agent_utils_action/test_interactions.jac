@@ -3,7 +3,8 @@ import from logging { Logger }
 import from jivas.agent.core.agent { Agent }
 import from jivas.agent.memory.memory { Memory }
 import from jivas.agent.memory.frame { Frame }
-import from jivas.agent.memory.advance { Advance }
+import from jivas.agent.memory.tail { Tail }
+import from jivas.agent.memory.retrace { Retrace }
 import from jivas.agent.memory.interaction { Interaction }
 import from jivas.agent.modules.action.path { action_walker_path }
 import from jivas.agent.action.agent_graph_walker { agent_graph_walker }
@@ -37,7 +38,7 @@ walker test_interactions(agent_graph_walker) {
     }
 
     can on_frame with Frame entry {
-        visit [->:Advance:->](`?Interaction);
+        visit [->:Tail:->](`?Interaction);
     }
 
     can on_interaction with Interaction entry {
@@ -47,11 +48,10 @@ walker test_interactions(agent_graph_walker) {
                 "ModelActionResult": here.data["ModelActionResult"]
             });
         }
-        visit [->:Advance:->](`?Interaction);
+        visit [->:Retrace:->](`?Interaction);
     }
 
     can on_exit with exit {
-        self.response.reverse();
         self.response = self.response[:self.max_interactions];
 
         if self.reporting {
