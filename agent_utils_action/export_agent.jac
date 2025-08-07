@@ -1,14 +1,14 @@
-import:py re;
-import:py ast;
-import:py json;
-import:py yaml;
-import:py from jivas.agent.modules.agentlib.utils { Utils }
-import:py from jivas.agent.modules.agentlib.utils { LongStringDumper }
-import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker }
-import:jac from jivas.agent.core.agent { Agent }
+import re;
+import ast;
+import json;
+import yaml;
+import from jivas.agent.modules.data.serialization { LongStringDumper }
+import from jivas.agent.action.agent_graph_walker { agent_graph_walker }
+import from jivas.agent.modules.action.path { action_walker_path }
+import from jivas.agent.core.agent { Agent }
 
 
-walker export_agent :interact_graph_walker: {
+walker export_agent(agent_graph_walker) {
     # accepts agent_id and returns dict of exported agent descriptor
 
     has clean_descriptor: bool = True;
@@ -17,15 +17,16 @@ walker export_agent :interact_graph_walker: {
     has knode_embeddings: bool = False;
     has knode_id: bool = False;
     has response:dict = {};
+    has reporting:bool = True;
 
-    obj __specs__ {
-        # make this walker visible in API
-        static has private: bool = True;
+    class __specs__ {
+        static has private: bool = False;
+        static has path: str = action_walker_path(__module__);
     }
 
     can on_agent with Agent entry {
 
-        daf_descriptor = here.export_descriptor(file_path="", modified_context=self.clean_descriptor);
+        daf_descriptor = here.get_descriptor();
 
         # create daf info
         daf_info = {
@@ -117,6 +118,9 @@ walker export_agent :interact_graph_walker: {
             data = json.loads(json.dumps(data));
             self.response = yaml.dump(data, Dumper=LongStringDumper, sort_keys=False);
         }
-        return self.response;
+
+        if self.reporting {
+            report self.response;
+        }
     }
 }

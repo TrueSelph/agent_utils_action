@@ -15,7 +15,7 @@
 
 # 0.0.5
 - Updated Agent DAF import and export operations
-- Added initagents control
+- Added init agents control
 
 # 0.0.6
 - Added purge collection
@@ -27,3 +27,6 @@
 
 # 0.0.8
 - Fixed the bug where the empty list prevents the message from being displayed
+
+# 0.1.0
+- Updated to support Jivas 2.1.0

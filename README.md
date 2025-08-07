@@ -6,7 +6,7 @@
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/TrueSelph/agent_utils_action)
 ![GitHub](https://img.shields.io/github/license/TrueSelph/agent_utils_action)
 
-This package, developed by V75 Inc., is focused on equipping power users with advanced controls to effectively manage agents. It serves as an integral component in managing and configuring agents, falling under the core action group. The package is configured as a singleton, ensuring that only a single instance functions at any one time. It relies on the Jivas library version 2.0.0.
+This package, developed by V75 Inc., is focused on equipping power users with advanced controls to effectively manage agents. It serves as an integral component in managing and configuring agents, falling under the core action group. The package is configured as a singleton, ensuring that only a single instance functions at any one time. It relies on the Jivas library version 2.1.0.
 
 ## Package Information
 
@@ -26,9 +26,7 @@ This package, developed by V75 Inc., is focused on equipping power users with ad
 
 ## Dependencies
 
-- **Jivas:** `^2.0.0`
-- **Pip:**
-  - `ftfy`: `6.2.3`
+- **Jivas:** `^2.1.0`
 
 ---
 

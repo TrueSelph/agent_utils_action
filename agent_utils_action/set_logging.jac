@@ -1,20 +1,25 @@
-import:py logging;
-import:py traceback;
-import:py from logging { Logger }
-import:py base64;
-import:jac from jivas.agent.core.agent { Agent }
-import:jac from jivas.agent.action.action { Action }
-import:jac from jivas.agent.action.actions { Actions }
-import:jac from jivas.agent.action.interact_graph_walker { interact_graph_walker }
+import logging;
+import from logging { Logger }
+import from jivas.agent.core.agent { Agent }
+import from jivas.agent.action.action { Action }
+import from jivas.agent.action.actions { Actions }
+import from jivas.agent.modules.action.path { action_walker_path }
+import from jivas.agent.action.agent_graph_walker { agent_graph_walker }
 
 
-walker set_logging :interact_graph_walker: {
+walker set_logging(agent_graph_walker) {
 
     has agent_logging:bool = True;
     has response:bool = False;
+    has reporting:bool = True;
 
     # set up logger
     static has logger:Logger = logging.getLogger(__name__);
+
+    class __specs__ {
+        static has private: bool = False;
+        static has path: str = action_walker_path(__module__);
+    }
 
     can on_agent with Agent entry {
         visit [-->](`?Actions);
@@ -27,6 +32,9 @@ walker set_logging :interact_graph_walker: {
     can on_action with Action entry {
         here.get_agent().set_logging(self.logging);
         self.response = True;
+        if self.reporting {
+            report self.response;
+        }
     }
 
 }
