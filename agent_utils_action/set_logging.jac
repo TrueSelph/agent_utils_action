@@ -30,7 +30,7 @@ walker set_logging(agent_graph_walker) {
     }
 
     can on_action with Action entry {
-        here.get_agent().set_logging(self.logging);
+        here.get_agent().set_logging(self.agent_logging);
         self.response = True;
         if self.reporting {
             report self.response;

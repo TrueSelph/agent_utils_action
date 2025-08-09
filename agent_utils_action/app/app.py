@@ -64,16 +64,17 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
     with st.expander("Agent Healthcheck", False):
         if st.button("Run Healthcheck", key=f"{model_key}_btn_health_check_agent"):
-            # Call the function to check the health
-            if result := call_healthcheck(agent_id=agent_id):
-                if result.get("status") == 200:
-                    st.success("Agent health okay")
-                else:
-                    st.error("Agent health not okay")
-                st.code(json.dumps(result, indent=2, sort_keys=False))
+            purge_frame_result = call_api(
+                endpoint=f"walker/healthcheck/{agent_id}",
+                method="GET"
+            )
+
+            if purge_frame_result and purge_frame_result.status_code == 200:
+                st.success("Agent health okay")
             else:
                 st.error("Agent health not okay")
-                st.code(json.dumps(result, indent=2, sort_keys=False))
+                purge_frame_result = get_reports_payload(purge_frame_result)
+                st.json(purge_frame_result.get("trace"))
 
     with st.expander("Memory Healthcheck", False):
         # User input fields
