@@ -33,3 +33,6 @@
 
 # 0.1.1
 - Update to use get_reports_payload
+
+# 0.1.2
+- Fix bug with multiple similar utterances
