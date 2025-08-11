@@ -528,14 +528,10 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
         else:
             # Create a dropdown with all available utterances
             selected_interaction = st.selectbox(
-                "Select an utterance",
+                "Select an interaction",
                 options=interactions,
-                format_func=lambda x: (
-                    x["utterance"][:50] + "..."
-                    if len(x["utterance"]) > 50
-                    else x["utterance"]
-                ),
-                help="Select an interaction to inspect",
+                format_func=lambda x: f"[Interaction #{interactions.index(x) + 1}] {x['utterance'][:50]}...",
+                help="Select an interaction to inspect - additional context is shown to distinguish similar utterances",
                 key=f"{model_key}_interaction_select",
             )
 
