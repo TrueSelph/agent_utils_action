@@ -2,6 +2,7 @@
 
 import json
 import time
+from datetime import datetime
 from typing import Any, Dict, List, Union
 
 import streamlit as st
@@ -595,34 +596,59 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                 "Prompt", value=prompt, height=height, key=f"{model_key}_prompt_editor"
             )
 
-            if st.button("Test Prompt", key=f"{model_key}_save_prompt"):
-                llm_result = call_api(
-                    endpoint="action/walker/agent_utils_action/test_llm_call",
-                    json_data={
-                        "agent_id": agent_id,
-                        "llm_prompt_message": edited_prompt,
-                        "model_name": model_name,
-                        "model_temperature": temperature,
-                        "model_max_tokens": max_tokens,
-                    },
-                )
+            num_tests = st.number_input(
+                "Number of times to test",
+                min_value=1,
+                max_value=10,
+                value=3,
+                key=f"{model_key}_num_tests",
+            )
 
-                if llm_result and llm_result.status_code == 200:
-                    llm_result = get_reports_payload(llm_result)
+            col1, col2 = st.columns([1, 1])  # Adjust the ratio as needed
 
-                result = llm_result.get("result", "No result found")
-                if "[" in result and "]" in result or "{" in result and "}" in result:
-                    st.warning("New Result:")
-                    st.json(result)
-                    st.info("Agent Result:")
-                    st.json(selected_result.get("result", {}))
-                else:
-                    st.warning(
-                        f"New Result: {llm_result.get("result", "No result found")}"
+            with col1:
+                if st.button("Test Prompt", key=f"{model_key}_save_prompt"):
+                    pass  # The button action will be handled below
+
+            with col2:
+                # num_tests = st.number_input("Number of times to test", min_value=1, max_value=10, value=3, key=f"{model_key}_num_tests")
+                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                # Display timestamp in the app
+                st.write(f"{current_time}")
+
+            if st.session_state.get(f"{model_key}_save_prompt"):
+                # if st.button("Test Prompt", key=f"{model_key}_save_prompt"):
+
+                all_results = []
+
+                for i in range(num_tests):
+                    llm_result = call_api(
+                        endpoint="action/walker/agent_utils_action/test_llm_call",
+                        json_data={
+                            "agent_id": agent_id,
+                            "llm_prompt_message": edited_prompt,
+                            "model_name": model_name,
+                            "model_temperature": temperature,
+                            "model_max_tokens": max_tokens,
+                        },
                     )
-                    st.info(
-                        f"Agent Result: {selected_result.get('result', 'No result found')}"
-                    )
+
+                    if llm_result and llm_result.status_code == 200:
+                        llm_result = get_reports_payload(llm_result)
+
+                    result = llm_result.get("result", "No result found")
+                    all_results.append((i + 1, result))
+
+                    # Display each result as it comes in
+                    st.write("---")
+                    st.warning(f"Test {i + 1}")
+                    st.write(result)
+
+                # Display the original agent result for comparison
+                st.write("---")
+                st.info("Original Agent Result:")
+                st.write(selected_result.get("result", "No result found"))
 
 
 def classify_data(data: Union[Dict[str, Any], List[Dict[str, Any]]]) -> str:
