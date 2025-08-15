@@ -36,3 +36,6 @@
 
 # 0.1.2
 - Fix bug with multiple similar utterances
+
+# 0.1.3
+- Update test interactions
