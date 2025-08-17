@@ -39,3 +39,6 @@
 
 # 0.1.3
 - Update test interactions
+
+# 0.1.4
+- Update test interactions for 2.1.14 compat
