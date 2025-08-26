@@ -179,10 +179,13 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                             "agent_id": agent_id,
                             "collection_name": collection_name,
                         },
-                        timeout=60
+                        timeout=60,
                     )
 
-                    if purge_collection_result and purge_collection_result.status_code == 200:
+                    if (
+                        purge_collection_result
+                        and purge_collection_result.status_code == 200
+                    ):
                         st.session_state.purge_collection_result = True
                         st.session_state.confirm_purge_collection = False
 
