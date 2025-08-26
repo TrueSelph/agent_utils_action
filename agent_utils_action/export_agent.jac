@@ -16,6 +16,8 @@ walker export_agent(agent_graph_walker) {
     has export_json: bool = True;
     has knode_embeddings: bool = False;
     has knode_id: bool = False;
+    has with_memory:bool = True;
+    has with_knowledge:bool = True;
     has response:dict = {};
     has reporting:bool = True;
 
@@ -91,32 +93,28 @@ walker export_agent(agent_graph_walker) {
         }
 
         # get memory
-        daf_memory = (here.get_memory().export_memory())['memory'];
+        daf_memory = [];
+        if self.with_memory {
+            agent_utils_action = here.get_action(action_label="AgentUtilsAction");
+            daf_memory = agent_utils_action.export_memory();
+        }
 
         # get knowledge
         daf_knowledge = [];
-        try {
-            if(vector_store_action := here.get_actions().get(action_label = here.get_vector_store_action())){
-                daf_knowledge = json.loads(vector_store_action.export_knodes(export_json=True, embeddings=self.knode_embeddings, include_id=self.knode_id));
+        if self.with_knowledge {
+            if(vector_store_action := here.get_action(action_label="TypesenseVectorStoreAction")) {
+                daf_knowledge = json.loads(vector_store_action.export_knodes(as_json=True, with_embeddings=self.knode_embeddings, with_ids=self.knode_id));
             }
-        } except Exception as e {
-            self.logger.error(f"Unable to export knowledge");
         }
 
-
-        data = {
-            "descriptor": daf_descriptor,
-            "memory": daf_memory,
-            "knowledge": daf_knowledge,
-            "info": daf_info
-        };
-
+        daf_descriptor["memory"] = daf_memory;
+        daf_descriptor["knowledge"] = daf_knowledge;
 
         if(self.export_json) {
-            self.response = data;
+            self.response = daf_descriptor;
         } else {
-            data = json.loads(json.dumps(data));
-            self.response = yaml.dump(data, Dumper=LongStringDumper, sort_keys=False);
+            daf_descriptor = json.loads(json.dumps(daf_descriptor));
+            self.response = yaml.dump(daf_descriptor, Dumper=LongStringDumper, sort_keys=False);
         }
 
         if self.reporting {

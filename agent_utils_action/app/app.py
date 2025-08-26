@@ -180,8 +180,10 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                             "collection_name": collection_name,
                         },
                     )
-                    st.session_state.purge_collection_result = purge_collection_result
-                    st.session_state.confirm_purge_collection = False
+
+                    if purge_frame_result and purge_frame_result.status_code == 200:
+                        st.session_state.purge_collection_result = True
+                        st.session_state.confirm_purge_collection = False
 
             with col2:
                 if st.button("No, Keep Collection"):
@@ -192,15 +194,15 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
         # Step 3: Show result *outside* confirmation
         purge_collection_result = st.session_state.get("purge_collection_result")
         if purge_collection_result in [True, []]:
-            st.success("Agent collection memory purged successfully")
-            st.session_state.purge_collection_result = None  # Reset after showing
+            st.success("Collection memory purged successfully")
+            st.session_state.purge_collection_result = None
             time.sleep(2)
             st.rerun()
         elif purge_collection_result is False:
             st.error(
                 "Failed to purge collection memory. Ensure that there is something to purge or check functionality"
             )
-            st.session_state.purge_collection_result = None  # Reset after showing
+            st.session_state.purge_collection_result = None
             time.sleep(2)
             st.rerun()
 
@@ -247,57 +249,80 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                 )
 
     with st.expander("Import Memory", False):
-        memory_data = st.text_area(
-            "Agent Memory in YAML or JSON",
-            value="",
-            height=170,
-            key=f"{model_key}_memory_data",
+        memory_source = st.radio(
+            "Choose data source:",
+            ("Text input", "Upload file"),
+            key=f"{model_key}_memory_source",
         )
+
+        raw_text_input = ""
+        uploaded_file = None
+        data_to_import = None
+
+        if memory_source == "Text input":
+            raw_text_input = st.text_area(
+                "Agent Memory in YAML or JSON",
+                value="",
+                height=170,
+                key=f"{model_key}_memory_data",
+            )
+
+        if memory_source == "Upload file":
+            uploaded_file = st.file_uploader(
+                "Upload file (YAML or JSON)",
+                type=["yaml", "json"],
+                key=f"{model_key}_agent_memory_upload",
+            )
+
         overwrite = st.toggle(
             "Overwrite", value=True, key=f"{model_key}_overwrite_memory"
         )
 
         if st.button("Import", key=f"{model_key}_btn_import_memory"):
-            # Call the function to import
-            if result := call_api(
-                endpoint="action/walker/agent_utils_action/import_memory",
-                json_data={
-                    "agent_id": agent_id,
-                    "data": memory_data,
-                    "overwrite": overwrite,
-                },
-            ):
-                st.success("Agent memory imported successfully")
-            else:
-                st.error(
-                    "Failed to import agent. Ensure that the  descriptor is in valid YAML format"
-                )
+            try:
+                if memory_source == "Upload file" and uploaded_file:
+                    file_content = uploaded_file.read().decode("utf-8")
+                    if uploaded_file.type == "application/json":
+                        data_to_import = json.loads(file_content)
+                    else:
+                        data_to_import = yaml.safe_load(file_content)
 
-            uploaded_file = st.file_uploader(
-                "Upload file", key=f"{model_key}_agent_memory_upload"
-            )
+                elif memory_source == "Text input" and raw_text_input.strip():
+                    # Try JSON first, fall back to YAML
+                    try:
+                        data_to_import = json.loads(raw_text_input)
+                    except json.JSONDecodeError:
+                        data_to_import = yaml.safe_load(raw_text_input)
 
-            if uploaded_file is not None:
-                loaded_config = yaml.safe_load(uploaded_file)
-                if loaded_config:
-                    st.write(loaded_config)
+                if data_to_import is None:
+                    st.error("No valid memory data provided.")
+                else:
+
                     if result := call_api(
                         endpoint="action/walker/agent_utils_action/import_memory",
-                        json_data={"agent_id": agent_id, "data": memory_data},
+                        json_data={
+                            "agent_id": agent_id,
+                            "data": json.dumps(data_to_import),
+                            "overwrite": overwrite,
+                        },
                     ):
                         st.success("Agent memory imported successfully")
                     else:
                         st.error(
-                            "Failed to import agent memory. Ensure that you are uploading a valid YAML file"
+                            "Failed to import agent memory. Ensure that the data is in valid YAML or JSON format"
                         )
-                else:
-                    st.error("File is invalid. Please upload a valid YAML file")
+            except Exception as e:
+                st.error(f"Import failed: {e}")
 
     with st.expander("Export Memory", False):
         # User input and toggle
         session_id = st.text_input(
             "Session ID (optional)", value="", key=f"{model_key}_export_session_id"
         )
+        export_collections = st.toggle(
+            "Export Collections", value=True, key=f"{model_key}_export_collections"
+        )
+
         export_json = st.toggle(
             "Export as JSON", value=True, key=f"{model_key}_export_json"
         )
@@ -311,18 +336,21 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
             # Call the function to export memory
             result = call_api(
                 endpoint="action/walker/agent_utils_action/export_memory",
-                json_data={"agent_id": agent_id, "session_id": session_id},
+                json_data={
+                    "agent_id": agent_id,
+                    "session_id": session_id,
+                    "export_collections": export_collections,
+                },
             )
 
             if result and result.status_code == 200:
 
                 result = get_reports_payload(result)
                 # Log results and provide download options
-                if result and "memory" in result:
+                if result and "frames" in result:
                     st.success("Agent memory exported successfully!")
 
                     # Process the first two entries of memory
-                    memory_entries = result["memory"][:2]  # First 2 entries
                     if export_json:
 
                         # Prepare downloadable JSON file
@@ -335,8 +363,6 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                             mime="application/json",
                             key="download_json",
                         )
-                        # JSON display
-                        st.json(memory_entries)
                     else:
 
                         # full memory dump
@@ -351,9 +377,6 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                             key="download_yaml",
                         )
 
-                        # YAML display
-                        yaml_data = yaml.dump(memory_entries, sort_keys=False)
-                        st.code(yaml_data, language="yaml")
                 else:
                     st.error(
                         "Failed to export agent memory. Please check your inputs and try again."
@@ -393,26 +416,66 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
 
     with st.expander("Import DAF", False):
         # Initialize lists to store classified data
-        daf_name = st.text_input("DAF Name", value="", key=f"{model_key}_daf_name")
-
-        daf_version = st.text_input(
-            "DAF Version", value="0.0.1", key=f"{model_key}_daf_version"
+        # daf_name = st.text_input("DAF Name", value="", key=f"{model_key}_daf_name")
+        daf_source = st.radio(
+            "Choose data source:",
+            ("Text input", "Upload file"),
+            key=f"{model_key}_daf_source",
         )
+
+        raw_text_input = ""
+        uploaded_file = None
+        data_to_import = None
+
+        if daf_source == "Text input":
+            raw_text_input = st.text_area(
+                "Agent DAF in YAML or JSON",
+                value="",
+                height=170,
+                key=f"{model_key}_daf_data",
+            )
+
+        if daf_source == "Upload file":
+            uploaded_file = st.file_uploader(
+                "Upload file (YAML or JSON)",
+                type=["yaml", "json"],
+                key=f"{model_key}_agent_daf_upload",
+            )
+
+        purge = st.toggle("Purge", value=True, key=f"{model_key}_purge_daf")
+
+        if daf_source == "Upload file" and uploaded_file:
+            file_content = uploaded_file.read().decode("utf-8")
+            if uploaded_file.type == "application/json":
+                data_to_import = json.loads(file_content)
+            else:
+                data_to_import = yaml.safe_load(file_content)
+
+        elif daf_source == "Text input" and raw_text_input.strip():
+            # Try JSON first, fall back to YAML
+            try:
+                data_to_import = json.loads(raw_text_input)
+            except json.JSONDecodeError:
+                data_to_import = yaml.safe_load(raw_text_input)
 
         if st.button("Import", key=f"{model_key}_btn_importing_daf"):
 
-            response = call_api(
-                endpoint="action/walker/agent_utils_action/import_agent",
-                json_data={
-                    "agent_id": agent_id,
-                    "daf_name": daf_name,
-                    "daf_version": daf_version,
-                },
-            )
-            if response is not None and response.status_code == 200:
-                st.success("Daf imported successfully")
+            if data_to_import is None:
+                st.error("Not valid daf provided.")
             else:
-                st.error("Failed to import DAF.")
+                response = call_api(
+                    endpoint="action/walker/agent_utils_action/import_agent",
+                    json_data={
+                        "agent_id": agent_id,
+                        "data": json.dumps(data_to_import),
+                        "purge": purge,
+                    },
+                    timeout=120,
+                )
+                if response is not None and response.status_code == 200:
+                    st.success("Daf imported successfully")
+                else:
+                    st.error("Failed to import DAF.")
 
     with st.expander("Export DAF", False):
 
@@ -423,14 +486,30 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
         )
         with_memory = st.checkbox(
             "Memory",
-            value=False,
+            value=True,
             key=f"{model_key}_exporting_daf_with_memory",
         )
         with_knowledge = st.checkbox(
             "Knowledge",
-            value=False,
+            value=True,
             key=f"{model_key}_exporting_daf_with_knowledge",
         )
+        knode_embeddings = False
+        knode_id = False
+
+        if with_knowledge:
+
+            knode_embeddings = st.checkbox(
+                "Knode Embeddings",
+                value=False,
+                key=f"{model_key}_exporting_daf_with_knode_embeddings",
+            )
+
+            knode_id = st.checkbox(
+                "Knode ID",
+                value=False,
+                key=f"{model_key}_exporting_daf_with_knode_id",
+            )
 
         if st.button("Export", key=f"{model_key}_btn_exporting_daf"):
 
@@ -441,6 +520,8 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                     "clean": clean,
                     "with_memory": with_memory,
                     "with_knowledge": with_knowledge,
+                    "knode_embeddings": knode_embeddings,
+                    "knode_id": knode_id,
                     "reporting": True,
                 },
             )

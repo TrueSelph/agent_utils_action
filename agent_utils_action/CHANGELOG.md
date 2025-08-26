@@ -42,3 +42,6 @@
 
 # 0.1.4
 - Update test interactions for 2.1.14 compat
+
+# 0.1.5
+- Added import and export collections
