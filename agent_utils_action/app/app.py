@@ -717,6 +717,7 @@ def render(router: StreamlitRouter, agent_id: str, action_id: str, info: dict) -
                             "model_temperature": temperature,
                             "model_max_tokens": max_tokens,
                         },
+                        timeout=120,
                     )
 
                     if llm_result and llm_result.status_code == 200:
