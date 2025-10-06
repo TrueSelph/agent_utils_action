@@ -3,24 +3,22 @@ import from logging { Logger }
 import from jivas.agent.core.agent { Agent }
 import from jivas.agent.action.action { Action }
 import from jivas.agent.action.actions { Actions }
-import from jivas.agent.memory.memory { Memory }
-import from jivas.agent.memory.collection { Collection }
-import from jivas.agent.modules.action.path { action_walker_path }
+import from jivas.agent.modules.data.serialization { LongStringDumper }
 import from jivas.agent.action.agent_graph_walker { agent_graph_walker }
+import from jivas.agent.modules.action.path { action_walker_path }
+import from jivas.agent.core.agent { Agent }
 
 
-walker export_memory(agent_graph_walker) {
+walker import_agent(agent_graph_walker) {
+    # accepts agent_id and returns dict of exported agent descriptor
 
-    has session_id:str = "";
-    has export_collections:bool = False;
+    has data:str = "";
+    has purge:bool = True;
     has response:dict = {};
-    has frames:list = [];
-    has collections:dict = {};
     has reporting:bool = True;
-    has agent_node:Agent = None;
 
-    # set up logger
     static has logger:Logger = logging.getLogger(__name__);
+
 
     class __specs__ {
         static has private: bool = False;
@@ -28,7 +26,6 @@ walker export_memory(agent_graph_walker) {
     }
 
     can on_agent with Agent entry {
-        self.agent_node = here;
         visit [-->](`?Actions);
     }
 
@@ -37,10 +34,11 @@ walker export_memory(agent_graph_walker) {
     }
 
     can on_action with Action entry {
-        self.response = here.export_memory(session_id=self.session_id, export_collections=self.export_collections);
+        self.logger.info(f"Importing data: {self.data}");
+        self.logger.info(f"Importing data: {type(self.data)}");
+        self.response = here.import_daf(self.data, self.purge);
         if self.reporting {
             report self.response;
         }
     }
-
 }
