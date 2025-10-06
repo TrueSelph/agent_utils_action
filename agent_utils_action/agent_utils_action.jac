@@ -1,4 +1,5 @@
 import json;
+import re;
 import yaml;
 import logging;
 import traceback;
@@ -8,7 +9,10 @@ import from jivas.agent.action.action { Action }
 import from jivas.agent.action.actions { Actions }
 import from jivas.agent.memory.memory { Memory }
 import from jivas.agent.memory.collection { Collection }
+import from jivas.agent.core.graph_node { GraphNode }
 import from jivas.agent.core.import_agent { import_agent }
+import from jac_cloud.plugin.jaseci { JacPlugin as Jac }
+import from jac_cloud.core.archetype { NodeAnchor }
 
 
 node AgentUtilsAction(Action) {
@@ -26,6 +30,12 @@ node AgentUtilsAction(Action) {
     }
 
     def purge_collection_memory(collection_name:str) {
+        # uncomment after merging jivas 2.1.21
+        # if collection_name {
+        #     result = (self.get_agent().get_memory() spawn _purge_collection(collection_name=collection_name)).removed;
+        # }
+
+        # remove this after merging jivas 2.1.21
         try {
             if(result := self.get_agent().get_memory().purge_collection_memory(collection_name)) {
                 return True;
@@ -125,6 +135,55 @@ node AgentUtilsAction(Action) {
     }
 
 }
+
+# remove this after merging jivas 2.1.21
+walker _purge_collection {
+    # walker which carries out the traversal and purging of this collection and any related child nodes
+
+    has removed:list = [];
+    has collection_name:str = "";
+
+    obj __specs__ {
+        # make this a private walker
+        static has private: bool = True;
+    }
+
+    can on_memory with Memory entry {
+        if(self.collection_name) {
+            visit [-->](`?Collection)(?name == self.collection_name) else {
+                disengage;
+            }
+        } else {
+            visit [-->](`?Collection);
+        }
+    }
+
+    can on_collection with Collection entry {
+        visit [-->] else {
+            self.removed.append(here);
+            Jac.destroy(here);
+        }
+    }
+
+    can on_collection_node with GraphNode entry {
+        try {
+            visit [-->];
+            self.removed.append(here);
+            Jac.destroy(here);
+        } except Exception as e {
+            node_id = re.search(r'\[(.*?)\]', str(e)).group(1);
+            node_name = re.search(r':([^:]+):', str(e)).group(1);
+            filter_query = {"name": node_name, "archetype.id": node_id};
+            if (cursor := NodeAnchor.Collection.find(filter_query)) {
+                nodes = [n.archetype for n in cursor];
+                for node_obj in nodes {
+                    Jac.destroy(node_obj);
+                }
+            }
+        }
+    }
+}
+
 
 
 walker _export_memory {
